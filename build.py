@@ -673,6 +673,24 @@ def extra_ld(rel, html, url, title, desc):
     return out
 
 
+def add_utm(html, rel):
+    """Tag links out to member brands, so each brand can see the visits Zeroing sends it."""
+    import re as _re
+    hosts = [_re.sub(r"^https?://(www\.)?", "", x["site"]).strip("/") for x in BRANDS if x.get("site")]
+    if not hosts:
+        return html
+    camp = _re.sub(r"[^a-z0-9]+", "-", rel.replace(".html", "").lower()).strip("-") or "home"
+    pat = _re.compile(r'href="(https?://(?:www\.)?(?:' + "|".join(map(_re.escape, hosts)) + r')[^"#]*)(#[^"]*)?"')
+
+    def sub(m):
+        url = m.group(1).replace("&amp;", "&")
+        if "utm_" in url:
+            return m.group(0)
+        url += ("&" if "?" in url else "?") + "utm_source=zeroingnow&utm_medium=referral&utm_campaign=" + camp
+        return 'href="' + url.replace("&", "&amp;") + (m.group(2) or "") + '"'
+    return pat.sub(sub, html)
+
+
 def share_tags():
     """Give every built page a canonical address and a preview card for WhatsApp, LinkedIn, X and others."""
     import glob, re as _re, datetime as _dt
@@ -748,6 +766,7 @@ def share_tags():
         if rel.startswith("lab/"):
             tags += '\n<meta name="robots" content="noindex">'
         html = html.replace("</title>", "</title>" + tags, 1)
+        html = add_utm(html, rel)
         open(full, "w", encoding="utf-8").write(html)
     urls = []
     for full in sorted(glob.glob(os.path.join(OUT, "**", "*.html"), recursive=True)):
