@@ -223,7 +223,7 @@
     if (!isNaN(d) && (Date.now() - d) / 864e5 < 30) el.insertAdjacentHTML('beforeend', ' <span class="new">New</span>');
   });
 
-  // every form on the site posts to /api/submit, which stores it in the Zeroing database
+  // every form on the site is emailed to the Zeroing inbox through FormSubmit
   var DONE = {
     join: 'Thank you. Your application is in. We will write back within 14 days.',
     guest: 'Thank you. We will look into their work and reach out ourselves.',
@@ -261,9 +261,8 @@
           .then(function (r) { return r.json(); }).then(function (j) { return { ok: j && (j.success === true || j.success === 'true') }; });
       };
       if (data.company_website) { status.textContent = DONE[form.dataset.form] || 'Thank you.'; button.disabled = false; return; }
-      fetch('/api/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) })
-        .then(function (r) { if (!r.ok && r.status !== 400) throw new Error('no api'); return r.json(); })
-        .catch(function () { return viaMail(); })
+      // GitHub Pages has no form server, so entries go straight to the inbox by email
+      viaMail()
         .then(function (res) {
           if (res.ok) { form.reset(); status.textContent = DONE[form.dataset.form] || 'Thank you. It is in.'; }
           else { status.textContent = res.error || 'That did not go through. Try again, or email zeroingindia@gmail.com.'; }
